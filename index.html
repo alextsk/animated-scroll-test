@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>scroll</title>
+	<style type="text/css">
+		aside{
+			width: 200px;
+			position: fixed;
+			left:0;
+		}
+		aside > ul > li.active {
+			background: yellow;
+		}
+		main{
+			margin-left:200px;
+		}
+		section{
+			height: 100vh;
+			background: #99cacd;
+			margin:1px;
+		}
+	</style>
+</head>
+<body>
+
+<aside>
+	<ul>
+		<li data-ctrl="sec1" id="menu-point">menu 1</li>
+		<li data-ctrl="sec2">menu 2</li>
+		<li data-ctrl="sec3">menu 3</li>
+		<li data-ctrl="sec4">menu 4</li>
+		<li data-ctrl="sec5">menu 5</li>
+	</ul>
+</aside>
+<main>
+	<section data-frame="sec1">1</section>
+	<section data-frame="sec2">2</section>
+	<section data-frame="sec3">3</section>
+	<section data-frame="sec4">4</section>
+	<div data-frame="sec5"> hello, I'm one last ugly frame</div>
+</main>
+<script type="text/javascript">
+window.onload = function () {
+	function isVisible(element) {
+		let {top, left, bottom, right} = element.getBoundingClientRect();
+		let winHeight = document.documentElement.clientHeight;
+
+		if (top >= 0 && top < winHeight/2) {
+			return true;
+		} else if ( bottom > winHeight/2 && bottom < winHeight) {
+			return true
+		}
+		return false
+	}
+	let frames = Array.from(document.querySelectorAll('[data-frame]'))
+	let controls = Array.from(document.querySelectorAll('[data-ctrl]'))
+	let prevCtrl = null;
+	let consCtrl = null;
+	let ctrlParent = controls[0].parentNode;
+	ctrlParent.addEventListener('click', function (e) {
+		if (!e.target.dataset.ctrl) return false;
+		consFrame = frames.find(fr => fr.dataset.frame === e.target.dataset.ctrl)
+		//consFrame.scrollIntoView(true);
+		animate(function(newVal) {
+			window.scrollTo(0, newVal)
+		}, window.pageYOffset, getCoordsInDoc(consFrame).top, 700)
+		.then((res) => {
+			if (prevCtrl) prevCtrl.classList.remove('active');
+			if (e.target) e.target.classList.add('active');
+			prevCtrl = e.target;
+			//checkActivity()	
+		})
+
+	})
+
+	function checkActivity() {
+		let firstVisible = frames.find(el => isVisible(el));
+		if (!firstVisible) return;
+		consCtrl = controls.find(ct => ct.dataset.ctrl === firstVisible.dataset.frame);
+		if (prevCtrl) prevCtrl.classList.remove('active');
+		if (consCtrl) consCtrl.classList.add('active');
+		prevCtrl = consCtrl;
+	}
+	
+	
+	window.addEventListener('scroll', function(e) {
+		checkActivity();
+	})
+
+	function getCoordsInDoc(el) { 
+		var {top, left} = el.getBoundingClientRect();
+
+		return {
+			top: top + window.pageYOffset,
+			left: left + window.pageXOffset
+		};
+	}
+
+/*	function animate(callback, startValue, endValue, time) {
+		return new Promise(function(resolve, reject) {
+			let pathPerMs = (endValue - startValue) / time
+			let startTime 
+			let prevTime = startTime = performance.now()
+			let newVal = startValue
+			
+			let growing = startValue > endValue
+			requestAnimationFrame(function step(timeRaf) {
+				let delta = Math.max(timeRaf - prevTime, 16)
+				
+				if ((timeRaf - startTime) > time) {
+					resolve(endValue + ' '  + newVal)
+					return  callback(endValue)
+				}
+				
+				newVal += delta * pathPerMs
+				if ( (growing && newVal < endValue) || (!growing && newVal > endValue) ) newVal = endValue
+				
+				console.log(delta , newVal)
+				callback(newVal)
+
+				prevTime = timeRaf 
+				requestAnimationFrame(step)
+			})	
+		})
+	}*/
+
+	function animate(callback, startValue, endValue, duration) {
+		return new Promise(function(resolve, reject) {
+			let path = (endValue - startValue)
+			let startTime = performance.now()
+			//let newVal = startValue
+			
+			let growing = startValue > endValue
+			requestAnimationFrame(function step(timeRaf) {
+				let time = (timeRaf - startTime) / duration
+				
+				if ((timeRaf - startTime) > duration) {
+					resolve(endValue)
+					return  callback(endValue)
+				}
+
+				time = easeInQuad(time)
+				newVal = time * path + startValue
+
+				//if ( (growing && newVal < endValue) || (!growing && newVal > endValue) ) newVal = endValue
+
+				callback(newVal)
+				requestAnimationFrame(step)
+			})	
+		})
+	}
+
+	function easeInQuad(t) {
+		return t * t;
+	}
+
+}
+</script>
+</body>
+</html>
